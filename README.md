@@ -19,3 +19,7 @@ Display a TUI monitor interface.
 
 It currently only supports GNU/Linux.\
 The [openfan](https://github.com/mdouchement/openfand/openfan) should work on several platform since [go.bug.st/serial](https://go.bug.st/serial) (https://github.com/bugst/go-serial) is cross-platform.
+
+## Installation
+
+Read [INSTALLATION.md](INSTALLATION.md) for the installation process.
