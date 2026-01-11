@@ -1,0 +1,81 @@
+socket: /run/openfand/openfand.sock
+
+debug: false
+
+fan_settings:
+  fan1: &front-fan
+    label: FrontTop
+    fan_step_up: 4.2s
+    fan_step_down: 4.2s
+    curve_points: # "Pretty" curve example
+      - 30%:
+          "k10temp: Tctl": 30
+          "amdgpu: junction": 35
+          "amdgpu: mem": 70
+      - 40%:
+          "k10temp: Tctl": 40
+          "amdgpu: junction": 45
+          "amdgpu: mem": 75
+      - 60%:
+          "k10temp: Tctl": 50
+          "amdgpu: junction": 55
+          "amdgpu: mem": 80
+      - 80%:
+          "k10temp: Tctl": 60
+          "amdgpu: junction": 65
+          "amdgpu: mem": 85
+
+  fan2:
+    <<: *front-fan # Set values from fan1 and then overwrite label & fan_step_up for fan2 (NB: it's a YAML syntax feature)
+    label: FrontBottom
+    fan_step_up: 2s
+
+  fan5:
+    label: RearTop
+    fan_step_up: 2s
+    fan_step_down: 4s
+    curve_points: # Steps example
+      - 33%:
+          "k10temp: Tctl": 50
+          "amdgpu: junction": 60
+      - 50%:
+          "k10temp: Tctl": 50
+          "amdgpu: junction": 60
+      - 50%:
+          "k10temp: Tctl": 55
+          "amdgpu: junction": 65
+      - 80%:
+          "k10temp: Tctl": 55
+          "amdgpu: junction": 65
+      - 80%:
+          "k10temp: Tctl": 70
+          "amdgpu: junction": 80
+
+
+  fan10:
+    label: TopRear
+    curve_points: # Mixed curve; as for steps we need more points, the curve one has duplicated points
+      - 33%:
+          "k10temp: Tctl": 50     # Step
+          "amdgpu: junction": 52  # Curve
+          "amdgpu: mem": 65       # Curve
+      - 50%:
+          "k10temp: Tctl": 50
+          "amdgpu: junction": 57
+          "amdgpu: mem": 75
+      - 50%:
+          "k10temp: Tctl": 55
+          "amdgpu: junction": 57
+          "amdgpu: mem": 75
+      - 80%:
+          "k10temp: Tctl": 55
+          "amdgpu: junction": 80
+          "amdgpu: mem": 85
+      - 80%:
+          "k10temp: Tctl": 70
+          "amdgpu: junction": 80
+          "amdgpu: mem": 85
+      - 100%:
+          "k10temp: Tctl": 70
+          "amdgpu: junction": 90
+          "amdgpu: mem": 90

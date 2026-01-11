@@ -1,0 +1,47 @@
+# https://taskfile.dev
+# https://github.com/mdouchement/checksum
+
+version: '3'
+
+vars:
+  VERSION: 0.1.0
+  REVISION: { sh: git rev-parse HEAD }
+  WORKDIR: { sh: pwd }
+
+env:
+  CGO_ENABLED: 0
+
+tasks:
+  clean:
+    desc: Clean project
+    cmds:
+      - rm -rf {{.WORKDIR}}/dist
+
+  build-all:
+    desc: Build all binaries
+    cmds:
+      - task: clean
+      - mkdir -p dist
+      # Supported dist:    go tool dist list
+      - |
+        archs=(amd64 arm64)
+        oses=(linux)
+
+        for os in ${oses[@]}
+        do
+          for arch in ${archs[@]}
+          do
+            env GOOS=${os} GOARCH=${arch} go build -ldflags "{{.LDFLAGS | splitList "\n" | join " "}}" -o ./dist/openfand-${os}-${arch} "{{.WORKDIR}}/cmd/openfand/main.go"
+            ( cd ./dist && checksum --algs="sha256" --append-to checksum.txt openfand-${os}-${arch} )
+
+            env GOOS=${os} GOARCH=${arch} go build -ldflags "{{.LDFLAGS | splitList "\n" | join " "}}" -o ./dist/openfanctl-${os}-${arch} "{{.WORKDIR}}/cmd/openfanctl/main.go"
+            ( cd ./dist && checksum --algs="sha256" --append-to checksum.txt openfanctl-${os}-${arch} )
+          done
+        done
+    vars:
+      LDFLAGS: |
+        -s
+        -w
+        -X main.version={{.VERSION}}
+        -X main.revision={{ printf "%.7s" .REVISION }}
+        -X main.date={{now | date "2006-01-02~15:04:05"}}
