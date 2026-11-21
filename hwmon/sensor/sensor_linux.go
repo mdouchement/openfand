@@ -51,7 +51,7 @@ func builTemperature() (map[string]Temperature, func() error, error) {
 		directory := filepath.Dir(file)
 
 		// Get the base filename prefix like temp1
-		basename := strings.Split(filepath.Base(file), "_")[0]
+		basename, _, _ := strings.Cut(filepath.Base(file), "_")
 
 		// Get the base path like <dir>/temp1
 		basepath := filepath.Join(directory, basename)

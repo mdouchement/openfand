@@ -1,6 +1,11 @@
-socket: /run/openfand/openfand.sock
+# socket: /run/openfand/openfand.sock
 
 debug: false
+
+# Several drivers:
+#   openfan (default)
+#   artic
+# driver: openfan
 
 fan_settings:
   fan1: &front-fan

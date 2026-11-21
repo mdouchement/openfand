@@ -15,6 +15,7 @@ import (
 
 	"github.com/mdouchement/logger"
 	"github.com/mdouchement/openfand"
+	"github.com/mdouchement/openfand/artic"
 	showcurves "github.com/mdouchement/openfand/cmd/openfand/show_curves"
 	showsensors "github.com/mdouchement/openfand/cmd/openfand/show_sensors"
 	"github.com/mdouchement/openfand/hwmon/sensor"
@@ -85,33 +86,46 @@ func daemon(_ *cobra.Command, args []string) error {
 
 	var fan openfand.OpenFan = openfand.NewDummyOpenfanController()
 	if !dummy {
-		ctrl, err := openfan.OpenAuto()
-		if err != nil {
-			return fmt.Errorf("openfan: %w", err)
-		}
-		if cfg.Debug {
-			ctrl.SetLogger(log)
-		}
-
-		{
-			log.Infof("Fan Controller port `%s`", ctrl.Port())
-
-			hw, err := ctrl.HardwareInfo()
+		switch cfg.Driver {
+		case openfand.DriverArtic:
+			ctrl, err := artic.Open()
 			if err != nil {
-				panic(err)
+				return fmt.Errorf("artic: %w", err)
 			}
-			log.Infof("Hardware - REV: %s - MCU: %s - USB: %s - FAN_CHANNELS_TOTAL: %s - FAN_CHANNELS_ARCH: %s - FAN_CHANNELS_DRIVER: %s",
-				hw.Revision, hw.MCU, hw.USB, hw.FanChannelsTotal, hw.FanChannelsArch, hw.FanChannelsDriver)
+			if cfg.Debug {
+				ctrl.SetLogger(log)
+			}
 
-			fw, err := ctrl.FirmwareInfo()
+			fan = ctrl
+		case openfand.DriverOpenFan:
+			ctrl, err := openfan.OpenAuto()
 			if err != nil {
-				panic(err)
+				return fmt.Errorf("openfan: %w", err)
 			}
-			log.Infof("Firmware - REV: %s - PROTOCOL_VERSION: %s", fw.Revision, fw.ProtocolVersion)
-		}
+			if cfg.Debug {
+				ctrl.SetLogger(log)
+			}
 
-		defer ctrl.Close()
-		fan = ctrl
+			{
+				log.Infof("Fan Controller port `%s`", ctrl.Port())
+
+				hw, err := ctrl.HardwareInfo()
+				if err != nil {
+					panic(err)
+				}
+				log.Infof("Hardware - REV: %s - MCU: %s - USB: %s - FAN_CHANNELS_TOTAL: %s - FAN_CHANNELS_ARCH: %s - FAN_CHANNELS_DRIVER: %s",
+					hw.Revision, hw.MCU, hw.USB, hw.FanChannelsTotal, hw.FanChannelsArch, hw.FanChannelsDriver)
+
+				fw, err := ctrl.FirmwareInfo()
+				if err != nil {
+					panic(err)
+				}
+				log.Infof("Firmware - REV: %s - PROTOCOL_VERSION: %s", fw.Revision, fw.ProtocolVersion)
+			}
+
+			defer ctrl.Close()
+			fan = ctrl
+		}
 	}
 
 	collector, err := sensor.New()

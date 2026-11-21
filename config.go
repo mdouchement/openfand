@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -11,8 +12,14 @@ import (
 	"go.yaml.in/yaml/v4"
 )
 
+const (
+	DriverArtic   = "artic"
+	DriverOpenFan = "openfan"
+)
+
 type Config struct {
 	Debug       bool            `yaml:"debug"`
+	Driver      string          `yaml:"driver"`
 	Socket      string          `yaml:"socket"`
 	FanSettings map[string]*Fan `yaml:"fan_settings"`
 }
@@ -41,6 +48,13 @@ func Load(path string) (Config, error) {
 		return c, err
 	}
 
+	if c.Driver == "" {
+		c.Driver = DriverOpenFan
+	}
+	if !slices.Contains([]string{DriverArtic, DriverOpenFan}, c.Driver) {
+		return c, fmt.Errorf("unsupported driver: %s", c.Driver)
+	}
+
 	//
 
 	reName := regexp.MustCompile(`^fan(\d+)$`)
@@ -58,7 +72,7 @@ func Load(path string) (Config, error) {
 			return c, fmt.Errorf("%s: invalid number range", fname)
 		}
 
-		fan.ID = openfan.Fan(id - 1) // fan1 => 0, fan10 => 9
+		fan.ID = c.toRealID(id)
 
 		if len(fan.CurvePointsYAML) == 0 {
 			return c, fmt.Errorf("%s: no curve_points provided", fname)
@@ -97,4 +111,24 @@ func Load(path string) (Config, error) {
 	}
 
 	return c, nil
+}
+
+func (c Config) toRealID(id uint64) openfan.Fan {
+	switch c.Driver {
+	case DriverArtic:
+	case DriverOpenFan:
+		id-- // fan1 => 0, fan10 => 9
+	}
+
+	return openfan.Fan(id)
+}
+
+func (c Config) ToConfigID(id openfan.Fan) openfan.Fan {
+	switch c.Driver {
+	case DriverArtic:
+	case DriverOpenFan:
+		id++ // 0 => fan1, 9 => fan10
+	}
+
+	return openfan.Fan(id)
 }

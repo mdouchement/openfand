@@ -93,7 +93,7 @@ func (m *model) update(evals []openfand.Evaluation) error {
 	rows := make([]table.Row, 0, len(evals))
 	for _, eval := range evals {
 		rows = append(rows, table.Row{
-			fmt.Sprintf("fan%d(%s)", eval.ID+1, eval.Label),
+			fmt.Sprintf("fan%d(%s)", eval.ID, eval.Label),
 			fmt.Sprintf("%4d RPM (%2d%%)", eval.RPM, eval.PWM),
 		})
 	}
