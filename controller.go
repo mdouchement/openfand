@@ -111,6 +111,8 @@ func (c *Controller) Launch(ctx context.Context) {
 				c.ticker.Stop()
 				close(evalCh)
 				close(refreshCh)
+				c.events <- event{name: eventDisconnectWatchers}
+				c.events <- event{name: eventClose}
 				if err := c.listener.Close(); err != nil {
 					log.WithError(err).Error("Could not close socket listener")
 				}
@@ -119,7 +121,6 @@ func (c *Controller) Launch(ctx context.Context) {
 					log.WithError(err).Errorf("Could not remove socket %s", c.listener.Addr().String())
 				}
 
-				close(c.events)
 				return
 			}
 		}
@@ -128,10 +129,13 @@ func (c *Controller) Launch(ctx context.Context) {
 
 func (c *Controller) eventLoop(ctx context.Context) {
 	log := logger.LogWith(ctx)
-	watchers := map[int64]chan<- []byte{}
+	watchers := map[int64]*watcher{}
 
 	for e := range c.events {
 		switch e.name {
+		case eventClose:
+			close(c.events)
+			log.Info("Event loop closed")
 		case eventUpdateEval:
 			c.active[e.eval.ID] = e.eval
 		case eventUpdateRPMs:
@@ -172,14 +176,20 @@ func (c *Controller) eventLoop(ctx context.Context) {
 			}
 
 			for _, watcher := range watchers {
-				watcher <- payload
+				watcher.data <- payload
 			}
 		case eventWatch:
-			watchers[e.monitorID] = e.monitor
+			watchers[e.watcher.id] = e.watcher
 			c.events <- event{name: eventRefreshWatchers}
 		case eventUnwatch:
-			close(watchers[e.monitorID])
-			delete(watchers, e.monitorID)
+			close(watchers[e.watcher.id].data)
+			close(watchers[e.watcher.id].disconnect)
+			delete(watchers, e.watcher.id)
+			fmt.Println("HERE", e.watcher.id)
+		case eventDisconnectWatchers:
+			for _, watcher := range watchers {
+				watcher.disconnect <- struct{}{}
+			}
 		}
 	}
 }
@@ -267,14 +277,19 @@ func (c *Controller) monitor(log logger.Logger) func(w http.ResponseWriter, r *h
 
 		id := genID()
 		ch := make(chan []byte, 20)
-		c.events <- event{name: eventWatch, monitorID: id, monitor: ch}
+		disconnect := make(chan struct{})
+		c.events <- event{name: eventWatch, watcher: &watcher{id: id, disconnect: disconnect, data: ch}}
 
 		rc := http.NewResponseController(w)
 		for {
 			select {
 			case <-disconnected:
 				log.Info("Client disconnected")
-				c.events <- event{name: eventUnwatch, monitorID: id}
+				c.events <- event{name: eventUnwatch, watcher: &watcher{id: id}}
+				return
+			case <-disconnect:
+				log.Info("Disconnecting client")
+				c.events <- event{name: eventUnwatch, watcher: &watcher{id: id}}
 				return
 			case payload := <-ch:
 				_, err := w.Write(append(payload, '\n', '\n'))

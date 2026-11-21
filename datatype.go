@@ -46,19 +46,20 @@ type segment struct {
 }
 
 const (
-	eventUpdateEval      = "update-eval"
-	eventUpdateRPMs      = "update-rpms"
-	eventWatch           = "watch"
-	eventRefreshWatchers = "refresh-watchers"
-	eventUnwatch         = "unwatch"
+	eventUpdateEval         = "update-eval"
+	eventUpdateRPMs         = "update-rpms"
+	eventWatch              = "watch"
+	eventRefreshWatchers    = "refresh-watchers"
+	eventUnwatch            = "unwatch"
+	eventDisconnectWatchers = "disconnect-watchers"
+	eventClose              = "close"
 )
 
 type event struct {
-	name      string
-	eval      Evaluation
-	rpms      map[openfan.Fan]uint16
-	monitorID int64
-	monitor   chan<- []byte
+	name    string
+	eval    Evaluation
+	rpms    map[openfan.Fan]uint16
+	watcher *watcher
 }
 
 type refresh struct {
@@ -70,4 +71,10 @@ type refresh struct {
 func genID() int64 {
 	time.Sleep(time.Nanosecond)
 	return time.Now().UnixNano()
+}
+
+type watcher struct {
+	id         int64
+	disconnect chan<- struct{}
+	data       chan<- []byte
 }

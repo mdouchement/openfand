@@ -38,6 +38,12 @@ func Command(client *http.Client) *cobra.Command {
 					event, err = openfand.ReadSSE(resp.Body)
 					if err != nil {
 						tui.Quit()
+
+						if err == io.EOF {
+							fmt.Println("Closed by server")
+							os.Exit(0)
+						}
+
 						fmt.Println("ERR:", err)
 						os.Exit(1)
 					}

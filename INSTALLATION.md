@@ -45,4 +45,6 @@ ExecStart=/usr/sbin/openfand
 WantedBy=multi-user.target
 ```
 
+Inspired by https://github.com/liquidctl/liquidctl/blob/main/docs/linux/making-systemd-units-wait-for-devices.md
+
 > Logs: `journalctl --unit openfand`
