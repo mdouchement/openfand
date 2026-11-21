@@ -3,6 +3,7 @@ package openfand
 import (
 	"errors"
 	"fmt"
+	"slices"
 	"time"
 
 	"github.com/mdouchement/openfand/hwmon/sensor"
@@ -85,8 +86,8 @@ func NewCurveShaper(cfg Config, temps []sensor.Temperature) (*CurveShaper, error
 			}
 
 			s.index[tid][fan.ID] = func(t float64) int {
-				for i := len(segments) - 1; i >= 0; i-- {
-					s := segments[i]
+				for _, s := range slices.Backward(segments) {
+
 					if t >= s.temperature {
 						return int(s.eval(t))
 					}

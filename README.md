@@ -1,6 +1,6 @@
 # openfand
 
-**openfand** is a list of tools used to manage several fans leveraging [OpenFanController](https://github.com/SasaKaranovic/OpenFanController) hardware.
+**openfand** is a list of tools used to manage several fans leveraging [OpenFanController](https://github.com/SasaKaranovic/OpenFanController) hardware. It also supports hardware https://www.arctic.de/en/Fan-Controller/ACFAN00351A through supported Linux Kernel.
 
 **This tool is not recommended to manage critical fans like CPU. It may crash anytime leaving your fan unmanaged.** It is safer to let the motherboard managing them.
 

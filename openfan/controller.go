@@ -5,12 +5,18 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/mdouchement/logger"
 	"go.bug.st/serial"
 	"go.bug.st/serial/enumerator"
+)
+
+const (
+	VendorID = "2e8a"
+	DeviceID = "000a"
 )
 
 var (
@@ -28,14 +34,17 @@ type Controller struct {
 }
 
 func OpenAuto() (*Controller, error) {
-	ports, err := enumerator.GetDetailedPortsList()
+	ports, err := enumerator.GetDetailedPortsList(func(vid, pid string) bool {
+		// In 1.8.0 it's not applied for Linux target.
+		return strings.ToLower(vid) == VendorID && strings.ToLower(pid) == DeviceID
+	})
 	if err != nil {
 		return nil, err
 	}
 
 	var port *enumerator.PortDetails
 	for _, p := range ports {
-		if p.VID == "2e8a" && p.PID == "000a" {
+		if strings.ToLower(p.VID) == VendorID && strings.ToLower(p.PID) == DeviceID {
 			// There are 2 entries for this match:
 			// - 2e8a 000a /dev/ttyACM0 DE645CB69B6E7933
 			// - 2e8a 000a /dev/ttyACM1 DE645CB69B6E7933

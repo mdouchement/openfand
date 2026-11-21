@@ -31,10 +31,6 @@ type Evaluation struct {
 	Temperature     float64              `json:"temperature"`
 }
 
-func ToPtr[T any](v T) *T {
-	return &v
-}
-
 type point struct {
 	temperature float64
 	pwm         int

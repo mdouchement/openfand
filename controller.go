@@ -19,27 +19,29 @@ import (
 )
 
 type Controller struct {
-	fan      OpenFan
-	sensor   Sensor
-	shaper   Shaper
-	events   chan event
-	listener net.Listener
-	ticker   *time.Ticker
-	fans     map[openfan.Fan]Fan
-	active   map[openfan.Fan]Evaluation
-	pending  map[openfan.Fan]Evaluation
+	fan        OpenFan
+	sensor     Sensor
+	shaper     Shaper
+	events     chan event
+	listener   net.Listener
+	ticker     *time.Ticker
+	fans       map[openfan.Fan]Fan
+	active     map[openfan.Fan]Evaluation
+	pending    map[openfan.Fan]Evaluation
+	toConfigID func(openfan.Fan) openfan.Fan
 }
 
 func New(cfg Config, fan OpenFan, sensor Sensor, shaper Shaper, polling time.Duration) (*Controller, error) {
 	c := &Controller{
-		fan:     fan,
-		sensor:  sensor,
-		shaper:  shaper,
-		events:  make(chan event, 10),
-		ticker:  time.NewTicker(polling),
-		fans:    make(map[openfan.Fan]Fan),
-		active:  make(map[openfan.Fan]Evaluation),
-		pending: make(map[openfan.Fan]Evaluation),
+		fan:        fan,
+		sensor:     sensor,
+		shaper:     shaper,
+		events:     make(chan event, 10),
+		ticker:     time.NewTicker(polling),
+		fans:       make(map[openfan.Fan]Fan),
+		active:     make(map[openfan.Fan]Evaluation),
+		pending:    make(map[openfan.Fan]Evaluation),
+		toConfigID: cfg.ToConfigID,
 	}
 
 	for _, fan := range cfg.FanSettings {
@@ -157,7 +159,7 @@ func (c *Controller) eventLoop(ctx context.Context) {
 					if rpm == 0 {
 						continue
 					}
-					speeds = append(speeds, fmt.Sprintf("fan%d(%s): %d", fid+1, c.fans[fid].Label, rpm))
+					speeds = append(speeds, fmt.Sprintf("fan%d(%s): %d", c.toConfigID(fid), c.fans[fid].Label, rpm))
 				}
 				log.Info(strings.Join(speeds, " - "))
 			}
@@ -165,7 +167,14 @@ func (c *Controller) eventLoop(ctx context.Context) {
 			c.events <- event{name: eventRefreshWatchers}
 
 		case eventRefreshWatchers:
-			payload, err := json.Marshal(slices.Collect(maps.Values(c.active)))
+			evals := make([]Evaluation, len(c.active))
+			for id, eval := range c.active {
+				e := eval               // Clone
+				e.ID = c.toConfigID(id) // Change ID to user defined config
+				evals = append(evals, e)
+			}
+
+			payload, err := json.Marshal(evals)
 			if err != nil {
 				log.WithError(err).Error("Could not serialize metrics") // Should never happen
 				continue
@@ -238,7 +247,7 @@ func (c *Controller) eval(log logger.Logger, ch <-chan map[openfan.Fan]Evaluatio
 			toRefresh = true
 			c.events <- event{name: eventUpdateEval, eval: eval}
 
-			log.Infof("Set PWM %d for fan%d(%s) on %s of %.0f°C", eval.PWM, eval.ID+1, eval.Label, strconv.Quote(eval.TemperatureName), eval.Temperature)
+			log.Infof("Set PWM %d for fan%d(%s) on %s of %.0f°C", eval.PWM, c.toConfigID(eval.ID), eval.Label, strconv.Quote(eval.TemperatureName), eval.Temperature)
 			_, err := c.fan.SetPWM(fid, eval.PWM)
 			if err != nil {
 				log.WithError(err).Errorf("Could not set PWN for fan%d", fid)

@@ -124,19 +124,19 @@ func Command() *cobra.Command {
 				opt := charts.NewLineChartOptionWithSeries(set)
 				opt.Theme = charts.GetTheme(charts.ThemeVividDark)
 				opt.Padding = charts.NewBox(20, 20, 20, 20)
-				opt.Title.Text = fmt.Sprintf("fan%d: %s", fid+1, labels[fid])
+				opt.Title.Text = fmt.Sprintf("fan%d: %s", cfg.ToConfigID(fid), labels[fid])
 				opt.Title.FontStyle.FontSize = 16
 				opt.Title.Offset = charts.OffsetLeft
 				opt.Legend = charts.LegendOption{
-					Show:     openfand.ToPtr(true),
+					Show:     new(true),
 					Offset:   charts.OffsetCenter,
-					Vertical: openfand.ToPtr(true),
+					Vertical: new(true),
 					Padding:  charts.NewBox(0, 0, 0, 20),
 				}
-				opt.Symbol = charts.SymbolNone
+				opt.Symbol = charts.Symbol{Shape: charts.SymbolNone}
 				opt.LineStrokeWidth = 2
 				opt.StrokeSmoothingTension = 1
-				opt.XAxis.Show = openfand.ToPtr(true)
+				opt.XAxis.Show = new(true)
 				opt.XAxis.Title = "°C"
 				opt.XAxis.Labels = []string{} // Reset
 				for t := range maxT + 1 {
@@ -149,11 +149,11 @@ func Command() *cobra.Command {
 				opt.XAxis.LabelCount = maxT / 10
 				opt.YAxis = []charts.YAxisOption{
 					{
-						Show:                   openfand.ToPtr(true),
+						Show:                   new(true),
 						Title:                  "%",
-						Min:                    openfand.ToPtr(float64(0)),
-						Max:                    openfand.ToPtr(float64(100)),
-						RangeValuePaddingScale: openfand.ToPtr(float64(0)),
+						Min:                    new(float64(0)),
+						Max:                    new(float64(100)),
+						RangeValuePaddingScale: new(float64(0)),
 						Unit:                   10,
 					},
 				}
@@ -165,23 +165,23 @@ func Command() *cobra.Command {
 
 				err := p.LineChart(opt)
 				if err != nil {
-					return fmt.Errorf("fan%d: %w", fid+1, err)
+					return fmt.Errorf("fan%d: %w", cfg.ToConfigID(fid), err)
 				}
 
 				mPNG, err := p.Bytes()
 				if err != nil {
-					return fmt.Errorf("fan%d: %w", fid+1, err)
+					return fmt.Errorf("fan%d: %w", cfg.ToConfigID(fid), err)
 				}
 
 				m, _, err := image.Decode(bytes.NewReader(mPNG))
 				if err != nil {
-					return fmt.Errorf("fan%d: %w", fid+1, err)
+					return fmt.Errorf("fan%d: %w", cfg.ToConfigID(fid), err)
 				}
 
 				codec := sixel.NewEncoder(os.Stdout)
 				err = codec.Encode(m)
 				if err != nil {
-					return fmt.Errorf("fan%d: %w", fid+1, err)
+					return fmt.Errorf("fan%d: %w", cfg.ToConfigID(fid), err)
 				}
 			}
 
